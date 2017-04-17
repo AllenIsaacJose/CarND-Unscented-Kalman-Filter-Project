@@ -85,6 +85,32 @@ public:
   virtual ~UKF();
 
   /**
+   * Generates Sigma Points
+   * @param {MatrixXd} Xsig_out The generated sigma points matrix.
+   */
+  void GenerateSigmaPoints(MatrixXd* Xsig_out);
+
+  /**
+   * Augments Sigma Points
+   * @param {MatrixXd} Xsig_out The sigma points matrix to be augmented.
+   */
+  void AugmentedSigmaPoints(MatrixXd* Xsig_out);
+
+  /**
+   * Sigma Point Prediction
+   * @param {MatrixXd} Xsig_aug The augmented sigma points to be precessed.
+   * @param {MatrixXd} Xsig_out The predicted sigma points.
+   * @param {double} delta_t The time elapsed since last measurement.
+   */
+  void SigmaPointPrediction(MatrixXd Xsig_aug, MatrixXd* Xsig_out, double delta_t);
+
+  /**
+   * @param {VectorXd} x_out The predicted state vector.
+   * @param {MatrixXd} P_out The predicted covariance matrix.
+   */
+  void PredictMeanAndCovariance(VectorXd* x_out, MatrixXd* P_out);
+
+  /**
    * ProcessMeasurement
    * @param meas_package The latest measurement data of either radar or laser
    */
