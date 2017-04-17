@@ -105,10 +105,27 @@ public:
   void SigmaPointPrediction(MatrixXd Xsig_aug, MatrixXd* Xsig_out, double delta_t);
 
   /**
+   * Predict Mean And Covariance
    * @param {VectorXd} x_out The predicted state vector.
    * @param {MatrixXd} P_out The predicted covariance matrix.
    */
   void PredictMeanAndCovariance(VectorXd* x_out, MatrixXd* P_out);
+
+  /**
+   * Predict Laser Measurement
+   * @param {MatrixXd} Zsig_out The predicted sigma points in measurement space.
+   * @param {VectorXd} z_out The predicted laser state vector.
+   * @param {MatrixXd} S_out The predicted laser state covariance matrix.
+   */
+  void PredictLaserMeasurement(MatrixXd* Zsig_out, VectorXd* z_out, MatrixXd* S_out);
+
+  /**
+   * Predict Radar Measurement
+   * @param {MatrixXd} Zsig_out The predicted sigma points in measurement space.
+   * @param {VectorXd} z_out The predicted radar state vector.
+   * @param {MatrixXd} S_out The predicted radar state covariance matrix.
+   */
+  void PredictRadarMeasurement(MatrixXd* Zsig_out, VectorXd* z_out, MatrixXd* S_out);
 
   /**
    * ProcessMeasurement
@@ -122,6 +139,16 @@ public:
    * @param delta_t Time between k and k+1 in s
    */
   void Prediction(double delta_t);
+
+  /**
+   * Updates state the state, and the state covariance matrix.
+   * @param {int} n_z measurement dimension
+   * @param {MatrixXd} Zsig sigma points in measurement space
+   * @param {VectorXd} z_pred vector for mean predicted measurement
+   * @param {MatrixXd} S matrix for predicted measurement covariance
+   * @param {VectorXd} z vector for incoming measurement
+   */
+  void UpdateState(int n_z, MatrixXd Zsig, VectorXd z_pred, MatrixXd S, VectorXd z);
 
   /**
    * Updates the state and the state covariance matrix using a laser measurement
