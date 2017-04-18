@@ -32,6 +32,10 @@ public:
   ///* predicted sigma points matrix
   MatrixXd Xsig_pred_;
 
+  //measurement noise covariance matrix
+  MatrixXd R_laser_;
+  MatrixXd R_radar_;
+
   ///* time when the state is true, in us
   long long time_us_;
 

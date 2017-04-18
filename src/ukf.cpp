@@ -34,10 +34,10 @@ UKF::UKF() {
   P_ = MatrixXd(n_x_, n_x_);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 0.2;
+  std_a_ = 0.6;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 0.2;
+  std_yawdd_ = 0.6;
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
@@ -67,6 +67,17 @@ UKF::UKF() {
   weights_ = VectorXd(2 * n_aug_ + 1);
   weights_.fill(1 / (2 * (lambda_ + n_aug_)));
   weights_(0) = lambda_ / (lambda_ + n_aug_);
+
+  // setup measurement covariance matrix
+  R_radar_ = MatrixXd(3, 3);
+  R_radar_ << std_radr_ * std_radr_, 0, 0,
+       0, std_radphi_ * std_radphi_, 0,
+       0, 0, std_radrd_ * std_radrd_;
+
+  R_laser_ = MatrixXd(2, 2);
+  R_laser_ << std_laspx_ * std_laspx_, 0,
+              0, std_laspy_ * std_laspy_;
+
 }
 
 UKF::~UKF() {}
@@ -276,10 +287,7 @@ void UKF::PredictLaserMeasurement(MatrixXd* Zsig_out, VectorXd* z_out, MatrixXd*
   }
 
   //add measurement noise covariance matrix
-  MatrixXd R = MatrixXd(n_z, n_z);
-  R <<    std_laspx_ * std_laspx_, 0,
-          0, std_laspy_ * std_laspy_;
-  S = S + R;
+  S = S + R_laser_;
 
   //print result
   std::cout << std::endl << "PredictLaserMeasurement" << std::endl;
@@ -309,13 +317,18 @@ void UKF::PredictRadarMeasurement(MatrixXd* Zsig_out, VectorXd* z_out, MatrixXd*
   for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //2n+1 simga points
 
     // extract values for better readibility
-    double p_x = Xsig_pred_(0,i);
-    double p_y = Xsig_pred_(1,i);
-    double v  = Xsig_pred_(2,i);
-    double yaw = Xsig_pred_(3,i);
+    double p_x = Xsig_pred_(0, i);
+    double p_y = Xsig_pred_(1, i);
+    double v  = Xsig_pred_(2, i);
+    double yaw = Xsig_pred_(3, i);
 
     double v1 = cos(yaw)*v;
     double v2 = sin(yaw)*v;
+
+    if (fabs(p_x) < 0.001 && fabs(p_y) < 0.001){
+       p_x = 0.001;
+       p_y = 0.001;
+    }
 
     // measurement model
     Zsig(0,i) = sqrt(p_x*p_x + p_y*p_y);                        //r
@@ -345,11 +358,7 @@ void UKF::PredictRadarMeasurement(MatrixXd* Zsig_out, VectorXd* z_out, MatrixXd*
   }
 
   //add measurement noise covariance matrix
-  MatrixXd R = MatrixXd(n_z, n_z);
-  R <<    std_radr_ * std_radr_, 0, 0,
-          0, std_radphi_ * std_radphi_, 0,
-          0, 0,std_radrd_ * std_radrd_;
-  S = S + R;
+  S = S + R_radar_;
 
   //print result
   std::cout << std::endl << "PredictRadarMeasurement" << std::endl;
@@ -398,9 +407,9 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       double px = meas_package.raw_measurements_[0];
       double py = meas_package.raw_measurements_[1];
 
-      if (px == 0 || py == 0){
-        cout << "Ignoring empty laser measurement" << endl;
-        return;
+      if (fabs(px) < 0.001 && fabs(py) < 0.001){
+         px = 0.001;
+         py = 0.001;
       }
 
       x_ << px, py, 0, 0, 0;
@@ -419,8 +428,14 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     return;
   }
 
+  while (dt > 0.2) {
+    double step = 0.1;
+    Prediction(step);
+    dt -= step;
+  }
+
   Prediction(dt);
-  
+
   if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
     UpdateRadar(meas_package);
   } else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
@@ -518,10 +533,12 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
   */
 
   VectorXd z = meas_package.raw_measurements_;
+  double x = z[0];
+  double y = z[1];
 
-  if (z[0] == 0 || z[1] == 0){
-    cout << "Ignoring empty laser measurement" << endl;
-    return;
+  if (fabs(x) < 0.001 && fabs(y) < 0.001){
+     x = 0.001;
+     y = 0.001;
   }
 
   int n_z = 2; // laser measurement dimension
@@ -533,9 +550,12 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 
   UpdateState(n_z, Zsig, z_pred, S, z);
 
+  NIS_laser_ = (z - z_pred).transpose() * S.inverse() * (z - z_pred);
+
   //print result
   std::cout << std::endl << "UpdateLidar" << std::endl;
   std::cout << "New measurement: " << std::endl << z << std::endl;
+  std::cout << "NIS_laser_" << std::endl << NIS_laser_ << std::endl;
 }
 
 /**
@@ -552,11 +572,6 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
   VectorXd z = meas_package.raw_measurements_;
 
-  if (isnan(z[0]) || isnan(z[1]) || isnan(z[2])){
-    cout << "Ignoring invalid radar measurement" << endl;
-    return;
-  }
-
   int n_z = 3; // radar measurement dimension
 
   MatrixXd Zsig = MatrixXd(n_z, 2 * n_aug_ + 1);
@@ -566,7 +581,10 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
   UpdateState(n_z, Zsig, z_pred, S, z);
 
+  NIS_radar_ = (z - z_pred).transpose() * S.inverse() * (z - z_pred);
+
   //print result
   std::cout << std::endl << "UpdateRadar" << std::endl;
   std::cout << "New measurement: " << std::endl << z << std::endl;
+  std::cout << "NIS_radar_" << std::endl << NIS_radar_ << std::endl;
 }
