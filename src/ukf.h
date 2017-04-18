@@ -89,12 +89,6 @@ public:
   virtual ~UKF();
 
   /**
-   * Generates Sigma Points
-   * @param {MatrixXd} Xsig_out The generated sigma points matrix.
-   */
-  MatrixXd GenerateSigmaPoints();
-
-  /**
    * Augments Sigma Points
    * @param {MatrixXd} Xsig_out The sigma points matrix to be augmented.
    */
