@@ -92,8 +92,8 @@ MatrixXd UKF::GenerateSigmaPoints() {
   }
 
   //print result
-  // std::cout << std::endl << "GenerateSigmaPoints" << std::endl;
-  // std::cout << "Xsig = " << std::endl << Xsig << std::endl;
+  std::cout << std::endl << "GenerateSigmaPoints" << std::endl;
+  std::cout << "Xsig = " << std::endl << Xsig << std::endl;
 
   //write result
   return Xsig;
@@ -136,8 +136,8 @@ MatrixXd UKF::AugmentedSigmaPoints() {
   }
 
   //print result
-  // std::cout << std::endl << "AugmentedSigmaPoints" << std::endl;
-  // std::cout << "Xsig_aug = " << std::endl << Xsig_aug << std::endl;
+  std::cout << std::endl << "AugmentedSigmaPoints" << std::endl;
+  std::cout << "Xsig_aug = " << std::endl << Xsig_aug << std::endl;
 
   //write result
   return Xsig_aug;
@@ -196,8 +196,8 @@ void UKF::SigmaPointPrediction(MatrixXd Xsig_aug, double delta_t) {
   }
 
   //print result
-  // std::cout << std::endl << "SigmaPointPrediction" << std::endl;
-  // std::cout << "Xsig_pred = " << std::endl << Xsig_pred_ << std::endl;
+  std::cout << std::endl << "SigmaPointPrediction" << std::endl;
+  std::cout << "Xsig_pred = " << std::endl << Xsig_pred_ << std::endl;
 }
 
 void UKF::PredictMeanAndCovariance() {
@@ -222,11 +222,11 @@ void UKF::PredictMeanAndCovariance() {
   }
 
   //print result
-  // std::cout << std::endl << "PredictMeanAndCovariance" << std::endl;
-  // std::cout << "Predicted state" << std::endl;
-  // std::cout << x_ << std::endl;
-  // std::cout << "Predicted covariance matrix" << std::endl;
-  // std::cout << P_ << std::endl;
+  std::cout << std::endl << "PredictMeanAndCovariance" << std::endl;
+  std::cout << "Predicted state" << std::endl;
+  std::cout << x_ << std::endl;
+  std::cout << "Predicted covariance matrix" << std::endl;
+  std::cout << P_ << std::endl;
 }
 
 /**
@@ -282,9 +282,9 @@ void UKF::PredictLaserMeasurement(MatrixXd* Zsig_out, VectorXd* z_out, MatrixXd*
   S = S + R;
 
   //print result
-  // std::cout << std::endl << "PredictLaserMeasurement" << std::endl;
-  // std::cout << "z_pred: " << std::endl << z_pred << std::endl;
-  // std::cout << "S: " << std::endl << S << std::endl;
+  std::cout << std::endl << "PredictLaserMeasurement" << std::endl;
+  std::cout << "z_pred: " << std::endl << z_pred << std::endl;
+  std::cout << "S: " << std::endl << S << std::endl;
 
   //write result
   *Zsig_out = Zsig;
@@ -352,9 +352,9 @@ void UKF::PredictRadarMeasurement(MatrixXd* Zsig_out, VectorXd* z_out, MatrixXd*
   S = S + R;
 
   //print result
-  // std::cout << std::endl << "PredictRadarMeasurement" << std::endl;
-  // std::cout << "z_pred: " << std::endl << z_pred << std::endl;
-  // std::cout << "S: " << std::endl << S << std::endl;
+  std::cout << std::endl << "PredictRadarMeasurement" << std::endl;
+  std::cout << "z_pred: " << std::endl << z_pred << std::endl;
+  std::cout << "S: " << std::endl << S << std::endl;
 
   //write result
   *Zsig_out = Zsig;
@@ -415,10 +415,12 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 	float dt = (meas_package.timestamp_ - time_us_) / 1000000.0;	//dt - expressed in seconds
 	time_us_ = meas_package.timestamp_;
 
-  if (dt > 0.001) {
-    Prediction(dt);
+  if (dt < 0.001) {
+    return;
   }
 
+  Prediction(dt);
+  
   if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
     UpdateRadar(meas_package);
   } else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
